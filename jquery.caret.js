@@ -1,5 +1,5 @@
 (function($) {
-  $.fn.caret = function(pos) {
+  $.fn.caret = function(posStart, posEnd) {
     var target = this[0];
 	var isContentEditable = target.contentEditable === 'true';
     //get
@@ -16,7 +16,10 @@
           return range2.toString().length;
         }
         //textarea
-        return target.selectionStart;
+        return {
+          start: target.selectionStart,
+          end: target.selectionEnd
+        };
       }
       //IE<9
       if (document.selection) {
@@ -30,41 +33,60 @@
             return range2.text.length;
         }
         //textarea
-        var pos = 0,
-            range = target.createTextRange(),
-            range2 = document.selection.createRange().duplicate(),
-            bookmark = range2.getBookmark();
+        var posStart = 0,
+          posEnd = target.value.length,
+          range = target.createTextRange(),
+          range2 = document.selection.createRange().duplicate(),
+          bookmark = range2.getBookmark();
         range.moveToBookmark(bookmark);
-        while (range.moveStart('character', -1) !== 0) pos++;
-        return pos;
+        while (range.moveStart('character', -1) !== 0) posStart++;
+        while (range.moveEnd('character', 1) !== 0) posEnd--;
+        return {
+          start: posStart,
+          end: posEnd
+        };
       }
       //not supported
-      return 0;
+      return {
+        start: 0,
+        end: 0
+      };
     }
     //set
-    if (pos == -1)
-      pos = this[isContentEditable? 'text' : 'val']().length;
+    if (target.nodeName.toLowerCase() !== "input") return 0;
+    if (posStart == -1)
+      posStart = this[isContentEditable? 'text' : 'val']().length;
     //HTML5
     if (window.getSelection) {
       //contenteditable
       if (isContentEditable) {
         target.focus();
-        window.getSelection().collapse(target.firstChild, pos);
+        window.getSelection().collapse(target.firstChild, posStart);
       }
       //textarea
       else
-        target.setSelectionRange(pos, pos);
+        target.setSelectionRange(posStart, posEnd);
     }
     //IE<9
     else if (document.body.createTextRange) {
-      var range = document.body.createTextRange();
-      range.moveToElementText(target);
-      range.moveStart('character', pos);
+      //See http://stackoverflow.com/questions/3274843/get-caret-position-in-textarea-ie
+      var range = target.createTextRange();
+      var startCharMove = posStart - (target.value.slice(0, posStart).split("\r\n").length - 1);
       range.collapse(true);
+      if (posStart == posEnd) {
+        range.move("character", startCharMove);
+      } else {
+        range.moveEnd("character", offsetToRangeCharacterMove(el, posEnd));
+        range.moveStart("character", startCharMove);
+      }
       range.select();
+      return {
+        start: 0,
+        end: 0
+      };
     }
     if (!isContentEditable)
       target.focus();
-    return pos;
+    return posStart;
   }
 })(jQuery)
