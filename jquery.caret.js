@@ -1,7 +1,7 @@
 (function($) {
-  $.fn.caret = function(posStart, posEnd) {
+  $.fn.caretRange = function(posStart, posEnd) {
     var target = this[0];
-	var isContentEditable = target.contentEditable === 'true';
+    var isContentEditable = target.contentEditable === 'true';
     //get
     if (arguments.length == 0) {
       //HTML5
@@ -34,7 +34,7 @@
         }
         //textarea
         var posStart = 0,
-          posEnd = target.value.length,
+          posEnd = (target.value || target.innerText).length,
           range = target.createTextRange(),
           range2 = document.selection.createRange().duplicate(),
           bookmark = range2.getBookmark();
@@ -53,7 +53,7 @@
       };
     }
     //set
-    if (target.nodeName.toLowerCase() !== "input") return 0;
+    //if (target.nodeName.toLowerCase() !== "input") return 0;
     if (posStart == -1)
       posStart = this[isContentEditable? 'text' : 'val']().length;
     //HTML5
@@ -87,6 +87,19 @@
     }
     if (!isContentEditable)
       target.focus();
-    return posStart;
+    return {
+      start: posStart,
+      end: posEnd
+    };
+  }
+  $.fn.caret = function (pos){
+    var target = this;
+    if (arguments.length == 0) {
+      var ret = target.caretRange();
+      return ret.start;
+    } else {
+      var ret = target.caretRange(pos, pos);
+      return ret.start;
+    }
   }
 })(jQuery)
